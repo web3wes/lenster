@@ -24,11 +24,10 @@ import { Mixpanel } from '@lib/mixpanel';
 import onError from '@lib/onError';
 import splitSignature from '@lib/splitSignature';
 import trimify from '@lib/trimify';
-import uploadToArweave from '@lib/uploadToArweave';
 import dynamic from 'next/dynamic';
 import { FC, useState } from 'react';
 import toast from 'react-hot-toast';
-import { APP_NAME, LENSHUB_PROXY, RELAY_ON, SIGN_WALLET } from 'src/constants';
+import { APP_NAME, LENSHUB_PROXY, PINATA_JWT, RELAY_ON, SIGN_WALLET } from 'src/constants';
 import { useAppStore } from 'src/store/app';
 import { useCollectModuleStore } from 'src/store/collectmodule';
 import { usePublicationPersistStore, usePublicationStore } from 'src/store/publication';
@@ -196,33 +195,63 @@ const NewComment: FC<Props> = ({ hideCard = false, publication }) => {
     setCommentContentError('');
     setIsUploading(true);
     // TODO: Add animated_url support
-    const id = await uploadToArweave({
-      version: '2.0.0',
-      metadata_id: uuid(),
-      description: trimify(publicationContent),
-      content: trimify(publicationContent),
-      external_url: `https://lenster.xyz/u/${currentProfile?.handle}`,
-      image: attachments.length > 0 ? attachments[0]?.item : null,
-      imageMimeType: attachments.length > 0 ? attachments[0]?.type : null,
-      name: `Comment by @${currentProfile?.handle}`,
-      tags: getTags(publicationContent),
-      mainContentFocus:
-        attachments.length > 0
-          ? attachments[0]?.type === 'video/mp4'
-            ? PublicationMainFocus.Video
-            : PublicationMainFocus.Image
-          : PublicationMainFocus.TextOnly,
-      contentWarning: null,
-      media: attachments,
-      locale: 'en',
-      createdOn: new Date(),
-      appId: APP_NAME
-    }).finally(() => setIsUploading(false));
+
+    var axios = require('axios');
+    var data = JSON.stringify({
+      pinataOptions: {
+        cidVersion: 1
+      },
+      pinataMetadata: {
+        name: 'testing',
+        keyvalues: {
+          customKey: 'customValue',
+          customKey2: 'customValue2'
+        }
+      },
+      pinataContent: {
+        version: '2.0.0',
+        metadata_id: uuid(),
+        description: trimify(publicationContent),
+        content: trimify(publicationContent),
+        external_url: `https://lenster.xyz/u/${currentProfile?.handle}`,
+        image: attachments.length > 0 ? attachments[0]?.item : null,
+        imageMimeType: attachments.length > 0 ? attachments[0]?.type : null,
+        name: `Comment by @${currentProfile?.handle}`,
+        tags: getTags(publicationContent),
+        mainContentFocus:
+          attachments.length > 0
+            ? attachments[0]?.type === 'video/mp4'
+              ? PublicationMainFocus.Video
+              : PublicationMainFocus.Image
+            : PublicationMainFocus.TextOnly,
+        contentWarning: null,
+        media: attachments,
+        locale: 'en',
+        createdOn: new Date(),
+        appId: APP_NAME
+      }
+    });
+
+    var config = {
+      method: 'post',
+      url: 'https://api.pinata.cloud/pinning/pinJSONToIPFS',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${PINATA_JWT}`
+      },
+      data: data
+    };
+
+    const res = await axios(config);
+
+    console.log(`https://gateway.pinata.cloud/ipfs/${res.data.IpfsHash}`);
+
+    setIsUploading(false);
 
     const request = {
       profileId: currentProfile?.id,
       publicationId: publication?.__typename === 'Mirror' ? publication?.mirrorOf?.id : publication?.id,
-      contentURI: `https://arweave.net/${id}`,
+      contentURI: `https://gateway.pinata.cloud/ipfs/${res.data.IpfsHash}`,
       collectModule: feeData.recipient
         ? {
             [getModule(selectedModule.moduleName).config]: feeData
