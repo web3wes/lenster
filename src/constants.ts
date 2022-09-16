@@ -85,3 +85,6 @@ export const ALLOWED_MEDIA_TYPES = ['video/mp4', 'image/jpeg', 'image/png', 'ima
 // Bundlr
 export const BUNDLR_CURRENCY = 'matic';
 export const BUNDLR_NODE_URL = 'https://node2.bundlr.network';
+
+// Token
+export const PINATA_JWT = process.env.NEXT_PUBLIC_PINATA_JWT;
