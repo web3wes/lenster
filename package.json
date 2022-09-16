@@ -51,6 +51,7 @@
     "react-mentions": "^4.4.7",
     "uuid": "^9.0.0",
     "wagmi": "^0.6.5",
+    "whatwg-url": "^11.0.0",
     "zod": "^3.19.0",
     "zustand": "^4.1.1"
   },
